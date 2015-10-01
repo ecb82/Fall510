@@ -1,0 +1,351 @@
+---
+title: "HW4"
+output: html_document
+---
+
+
+Problem 1: creating vectors
+
+to simply create an un-assigned vector, one can either use the c() operation, or if the vector is an ordered sequence (as in parts a,b, and c) x:y will create a vector from x to y, where each value is an integer step in between.
+
+a)
+```{r}
+
+1:20
+
+```
+
+b)
+```{r}
+
+20:1
+
+```
+
+c)
+here we want to join two repeated sequences one increasing in value, followed by one decreasing.  To do this we create the two sequences separately, then place them in a new vector together
+
+```{r}
+
+left <- 1:19
+right <- 19:1
+c(left, 20, right)
+
+```
+
+
+d)
+```{r}
+
+tmp <- c(4,6,3)
+
+```
+
+e)
+rather than typing our the value 'tmp' ten times, we use the function rep() and specify to repeat 10 times
+
+```{r}
+
+c(rep(tmp, times=10))
+
+```
+
+f)
+to add the extra 4 we simple list it in addition to the repetition
+
+```{r}
+
+c(rep(tmp, times=10),4)
+
+```
+
+
+g)
+Now we use the rep() function on each individual letter for the desired number of repetitions
+```{r}
+
+c(rep(4, times=10),rep(6,times=20),rep(3,times=30))
+```
+
+
+Problem 2: vectors with values
+
+To more efficiently create a vector with these values, we create a vector x that contains the values we wish to evaluate, then we apply e*cos to x and we are returned a vector of calculated value for each x
+
+```{r}
+
+x<-c(seq(3,6,by=0.1))
+
+exp(x)*cos(x)
+
+```
+
+
+Problem 3: More Vectors
+
+a)
+here we want to use a loop to add increasing exponents of a common base.  since the pattern shown in the assignment increase by the same step we can achieve the desired vector by adding 3 to the exponent every time we go through the loop.  Note that here each new value is placed at the end of the vector because the index value also increases with each run in the loop.
+
+```{r}
+
+val3a <- c()
+
+for (i in 1:12){
+  val3a[i]<- 0.1^(0+(3*i))*0.2^(1+3*(i-1))
+
+}
+val3a
+
+```
+
+
+b)
+again we use a loop, but here we want to go through the loop 25 times.  we use the same assignment process to create this vector, only we use a different definition for the values.
+
+```{r}
+
+val3b <- c()
+
+for (i in 1:25){
+  val3b[i]<- 2^(i)/i
+}
+
+val3b
+
+```
+
+
+Problem 4: Calculations
+
+a)
+to calculate finite sums, we again make use of loops, where every time we cycle through the loop, we simply calculate the appropriate value of i, and add it to the sum so far.
+
+```{r}
+
+summing<- 0
+
+for (i in 10:100){
+  summing <- summing + (i^(3)+4*i^(2))
+}
+
+summing
+
+```
+
+
+b)
+here we use the same process as part a, but with a different calculated value, and over a different range of integers
+
+```{r}
+total <- 0
+
+for (i in 1:25){
+  total<- total+((2^(i)/i)+(3^(i)/(i^(2))))
+}
+
+
+total
+```
+
+
+Problem 5:
+
+a)
+here we want to join the word 'label' with each integer in the sequence from 1 to 30.  Using paste() this is very easy, we simply use label as our first argument to print it first, then we use the sequence as the second argument and the function creates the vector we want. We must specify that sep=' '  as an argument in order for there to be a space between the word and the number
+
+```{r}
+
+label<- 'label'
+len <- 1:30
+
+paste(label,len,sep=' ')
+
+```
+
+
+b)
+we use the same process as above, with a different word, and with no space separating the word and the number.
+
+```{r}
+fn<- 'fn'
+
+paste(fn,len,sep='')
+
+```
+
+
+
+Problem 6:
+
+```{r}
+#creating the necissary vectors:
+set.seed(50)
+xVec<- sample(0:999,250,replace=T)
+yVec<- sample(0:999,250,replace=T)
+
+```
+
+
+a)
+To get the difference of the correct yn and x(n-1) terms, we essentially need to shift the y vector to the left by one. This can be done by deleting the first term with a negative index, similarly we get rid of the xn term
+
+```{r}
+yVec[-1]-xVec[-250]
+
+```
+
+b)
+We use negative indexes again to get the terms to match up, so we get:
+
+```{r}
+
+sin(yVec[-250])/cos(xVec[-1])
+
+```
+
+
+c)
+Rather than using negative indexes, it is better to define the range of xn values that each term will take.  The first x1 value will be over the range of the first 248 terms, so we denote this using sequences (i.e. with the ':').  Similarly the second term will range from the second term to the second to last, and the third term will range from index 3 to the end of the vector.
+
+```{r}
+
+xVec[1:248]+2*xVec[2:249]-xVec[3:250]
+
+```
+
+
+d)
+rather than creating a loop and adding each cycle to the previous, as we did before, we can simply make a vector of each xi using indexes, then we use the sum() function to add all the values in the vector.  The result of sum() is the same as the finite sum described.
+
+```{r}
+
+sum((exp(-1*xVec[-1]))/(xVec[-250]+10))
+
+```
+
+
+Problem 7:
+
+
+a)
+since all we need are the values of the vector that are greater than 600, we can simply call values using their index, only rather than an integer, the we use the condition that the value is greater than 600.  This gives:
+
+
+```{r}
+
+xVec[xVec>600]
+
+```
+
+
+b)
+to return the indexes of the values in yVec that are greater, we first create a sequence vector that is the length of yVec.  This will allow us to represent the indexes in a numerical vector.  Then we simple use the same conditional index as we did in the part a, giving a vector of the places in yVec that are greater than 600.
+
+```{r}
+
+indexs<- 1:(length(yVec))
+
+indexs[yVec>600]
+
+```
+
+
+c)
+here we use the same idea from part b, only instead of using the condition in the vector indexs, we use it in xVec:
+
+```{r}
+
+xVec[yVec>600]
+
+```
+
+
+d)
+to create this vector, we first find the value for the mean of the xVec, this is easily done using the function mean().  Then we simply use this value and our abs() and sqrt() to generate a new vector.
+
+```{r}
+
+xbar <- mean(xVec)
+
+sqrt(abs(xVec-xbar))
+
+```
+
+
+e)
+we can find our maximum value by using the function max(), using this value we make a new vector of values in yVec that are larger than max-200 (i.e. they are within 200).  To get the total number of values within 200 of the max we simply take the length of this new vector.
+
+```{r}
+
+big<- max(yVec)
+
+length(yVec[yVec>big-200])
+
+```
+
+f)
+If we use the mod operator(%%) on xVec with a mod of 2, we get a 0 for each number divisible by 2 and a 1 for all odd values.  Knowing this, we know that the sum of the vector generated by this process will be the total number of odd values.  If an integer is not odd, then it must be even, so we get the total number of even number by subtracting the odds from the total number of values.
+
+```{r}
+
+odds <- sum(xVec%%2)
+
+evens <- length(xVec)-odds
+
+evens
+
+
+```
+
+
+g)
+
+this is very tricky, first we must sort the y values in increasing order. Next we need to match the ordered values with the random x values, this will return all the indexes of the x's that that are in y vector, in the order that the y values are arranged. Using this in our xVec index, we get the values in the order that they appear in our sorted ys.  This does not include the values that are in x, but not in y, so we get the indexes of the unmatched values (each marked as NA) and create a new vector that we will simply add to the end.  Combining these two vectors and eliminating the NA's and any repeats we have the desired sorting of our x values.
+
+```{r}
+
+yorder<- sort(yVec)
+xsort<- xVec[match(yorder,xVec)]
+xends<- xVec[is.na(xsort)]
+
+sortlen<- 1:length(xsort)
+xfin<- unique(c(xsort[-(sortlen[is.na(xsort)])],sort(xends)))
+
+xfin
+```
+
+h)
+here we want the elements with indexes congruent to 1 mod 3, do we create a vector with our index values, and use only the values that satisfy the condition.
+
+```{r}
+yindex<- 1:length(yVec)
+
+yVec[yindex%%3==1]
+
+
+```
+
+
+Problem 8:
+
+here it is easiest to define sequences for the numerator and the denominator values.  Since the numerator is the product of all the even integers, we start at zero and move up by a step of 2, note that we must get rid of the zero and replace it with 1 otherwise our sum will begin 0+... The denominator is the product of all the odd integers, so we start the sequence at 1 and move up by 2.  With these we can get a vector of all the fractions multiplied. Now we simply find each cumulative product and calculate the sum.
+
+```{r}
+
+numerator<- seq(0,38,by=2)
+numerator[1]<- 1
+denom<- seq(1,39,by=2)
+
+fracs<- numerator/denom
+sum(cumprod(fracs))
+
+```
+
+
+
+
+
+
+
+
+
