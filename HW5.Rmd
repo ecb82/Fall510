@@ -1,0 +1,124 @@
+---
+title: "HW5"
+output: html_document
+---
+
+
+
+Problem 1:
+
+for this problem we want to extract all of the columns of a generic data frame that are numeric, That is to say we want to take a data frame and create an algorithem that shows us only the columns that have all numeric elements.  To do this we use the sequence outlined below 
+
+```{r}
+#let us suppose that we have some data frame and we want the numeric columns.  To work through this problem, let's use the diamonds data frame, but it is important to note that this data frame can be replaced by any other data frame
+
+require(ggplot2)
+require(grid)
+
+data(diamonds)
+
+
+
+#now to go through and figure out which column has only numeric elements, we will use a loop to test each column index.  To keep this process generic, we use the function ncol() to find the number of columns in the frame:
+
+w <- ncol(diamonds)
+
+numcols <- c() #this is simply an emty vector that we will use to hold the index values of the numeric columns
+
+
+#now that we have the width of the data frame we create a loop that will test if each column is numeric.  
+
+
+for(index in 1:w){
+  if(class(diamonds[[index]])=="numeric")(
+    #this if statement uses the function class(), which simply returns the class name of an object, we test if the name given is the class type we want with a Boolean equivilance.
+    numcols = append(numcols,index)
+    #this is a new vecor, where each value is the index of a numeric column, so we can use this to show which columns these are
+  )
+}
+#checking to see which indexes we have:
+numcols
+
+#we can double check this, by looking at the summary of the columns given, and we can see that each is numeric so our process works
+str(diamonds[numcols])
+
+
+```
+
+
+Problem 2:
+
+```{r}
+#Using the result from the last problem we can create a new data frame with the left column the string of the two variable names and right the correlation of the two variables.
+
+#Again we use a simalr idea as in problem 1, where we use a loop to access the columns, so we need the length of the index vector created in problem 1, as this contains all the columns we want to use, so we will need to go through each of those columns, not each column of the original dataframe.
+
+len <- length(numcols)
+
+#set two empty vectors that will be used to hold values for the correlation and the concated name of the variables
+
+corname<- c()
+corvals <- c()
+
+#since we will be pairing the each column we will need to use nestled loops, the first going through the each variable, the second pairing it with the other variables. 
+
+for(i in numcols){
+  #goes through each variable once
+  
+  for(j in numcols){
+    #this loop will go through every variable once for each of the variable in the other loop, i.e. going through every pair with the variable i
+    
+    if (i<j){
+      #this condition eliminates any repeats, because the vector numcols is in ascending order, so if j <= i then the pair i-j has already been examined when j was called in the first loop.
+      
+      corname = append(corname, paste(names(diamonds[i]),names(diamonds[j]),sep="-"))
+      #this makes the two variable names into one string and adds this new string to the end of the vector of concated variable names
+      
+      corvals = append(corvals, cor(diamonds[i],diamonds[j]))
+      #this evaluates the correlation of the two variablesand adds the value to the vector of paired-variable correlations at the same index as the name
+    }
+  }
+}
+
+#now we take the two vectors produced by the loop and convert them into a dataframe
+
+corrilation <- data.frame(corname,corvals)
+
+#checking the dataframe we have the result we wanted
+
+corrilation
+
+```
+
+
+
+Problem 3:
+
+```{r}
+#IN order to plot we need the original data from the initial dataframe, so we cannot simply cycle through the paired correlations that we found above.  This means that we have to make an identical nestled loop as we did in problem 2. Note: the loop is copy pasted from above, so no explination is given for the loop itself since we know it works and what it means.
+
+#to keep track of which cycle of the loops corresponds to the values and names made above, we create a dummy variable ind which will be increased by 1 everytime we are about to create a plot, this will give us the plots respective row index of the dataframe we created above, which will be useful when creating labels
+
+ind<- 0
+
+
+for(i in numcols){
+  for(j in numcols){
+    if (i<j){
+      ind = ind+1  #this counts which pair is ploted and is the row index of corrilation 
+      
+      print(qplot(diamonds[[i]],diamonds[[j]],xlab=names(diamonds[i]),ylab=names(diamonds[j]),main=paste(corname[ind],corvals[ind],sep=" with Cor=")))
+      
+      #this gives the scatter plot of each paired variable, and labels the respective axes, and the title gives the pair's corrilation value
+    }
+    }
+  }
+
+```
+
+
+
+
+
+
+
