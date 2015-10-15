@@ -1,0 +1,177 @@
+---
+title: "TEST1_R"
+author: "Eric Budge (ecb82)"
+date: "October 8, 2015"
+output: html_document
+---
+
+
+Problem 1:
+
+```{r}
+#load the packages we will need
+require(ggplot2)
+require(stats)
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(lubridate)
+
+#import the relivent dataframes we will use
+data("diamonds")
+data("mtcars")
+
+#these summaries will give us a refference to see is we are getting everything we need
+str(diamonds)
+str(mtcars)
+
+#as we can see this is a vector of length 32 with only 1s and 0s
+str(mtcars$vs)
+
+#we can convert this to a logic vector by simply testing each value to see if it is equivilnt to 1 and assigning this to a new vector. This gives a vector of the same length where evey 1 becomes TRUE and every 0 becomes FALSE
+logv <- mtcars$vs
+logv <- logv==1
+
+#Now to extend this to the length of diamonds, we will need the length of our original nevtor, o, and the length we want,n.
+o <- length(logv)
+n <- nrow(diamonds)
+
+#now we want to add values to the vector that repeats the sequence of the original vector, until we have length n.  To do this we use a for loop that will go through every index value we want (i.e. 1 up to n) and will assign it the appropriate sequence value. To get an identicle sequence we make use of integer congruence math
+
+for(i in 1:n){
+  #we want to test each index value to associate the appropriate value.  usinf the ifelse() function we assign all the values up to index n such that the pattern of the original vector is repeated
+  ifelse(i%%o>0,logv[i] <- logv[i%%o], logv[i]<-logv[1])
+}
+
+#with this new vector of length n, we make a new data frame with this vector and diamonds, which will be identical to diamonds, only with the lofiv vector added on.
+data.frame(logv,diamonds)  -> newframe
+
+#check to make sure we have what we want
+str(newframe)
+
+
+
+```
+
+Problem 2:
+
+```{r}
+
+#to extract the ordered and numeric variables we use a logical operation on the variables and assign the TRUE values to a new dataframe
+newframe[sapply(newframe,is.ordered) |  sapply(newframe,is.logical)] -> numlogdf
+
+#checking that we have all to the values we want we see that this new frame has every ordered factor variable as well as the logic vector we created, so this process worked.
+str(numlogdf)
+
+```
+
+
+
+Problem 3:
+
+```{r}
+#plotting will become easier if we can call the variables by name, that way we can use the same call generally to get the appropriate axis labels.  Here the variable headers is simply the variable names
+headers <- names(numlogdf)
+
+#remove the logic variable because this will be our x axis of every plot, removing it means that we will never plot this variable against itself
+headers <- headers[-logv]
+
+#use a loop to go through each variable and plot the count of TRUE and FALE for each
+for(i in 1:length(headers)){
+  
+  ivar<- headers[i] #assign the call of the variable name
+  
+  #plot the data from the dataframe made in problem 2, using the logic as the x axis.  need to break up the logic into thwo values, TRUE and FALSE so we use the function factor()
+  graph<- ggplot(numlogdf, aes(factor(logv)))
+  
+  #modify the plot to be a grey bar-graph. The facet_wrap makes it so that each ordered factor is plotted seperately for the variable.
+  graph <- graph + geom_bar(fill='grey') + facet_wrap(ivar) + labs(title = ivar)
+    
+  print(graph)
+  
+}
+
+#using the same process as in the loop we plot the total count of TRUE and FALSE in the dataframe, no loop required because we only need to do this for one variable, the logic vector.
+tf<- ggplot(numlogdf, aes(factor(logv)))
+
+tf <- tf + geom_bar(fill = 'grey') + labs(title='Total T/F counts')
+
+print(tf)
+
+
+
+
+
+```
+
+
+
+Problem 4:
+
+```{r}
+#here we want to create a list of tables that describe the frequencey of TRUE and FALSE for each ordered factor variable. So we should have a list of length three (the number of ordered factors).
+
+#we can use the dataframe from problem 2 because it contains all the ordered factors and logical variables
+str(numlogdf)
+
+
+#create an empty list that has a length equal to the number of ordered factors.  this allows us to assign the tables that we will generate to the empty indexes, thus making a list of the tabels
+freqtabs <- vector(mode='list', length = length(headers))
+
+#we again use a loop to go through each of the ordered variables and generate a frequency table
+for(i in 1:length(headers)){
+
+  ivar<- headers[i] #gives the name of the ordered variable
+  
+  #since the function table() will interprite a dataframe as a row or colum, we place the variables that we want into a vector together.  This way when we enter the vector into table() the factors of the first will be the columns and the factors of the second will be the rows.
+  dimen<- c(numlogdf[ivar],numlogdf['logv'])
+  
+  #now we make out frequency table
+  dimen %>% 
+    table() %>% #creates an initial table
+    prop.table() -> freqtabs[[i]] 
+  #prop,table() returns the frequencies of the values of a table (i.e. turns our table into a frequency table). Then we assign this table to the list index and we are done
+
+}
+
+#now our list is no longer empty, it now contains frequency tables!!
+freqtabs
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
