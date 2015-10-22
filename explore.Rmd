@@ -1,0 +1,222 @@
+---
+title: "explore"
+author: "Eric Budge (ecb82)"
+date: "October 17, 2015"
+output: html_document
+---
+
+
+Objective:
+
+define a function explore() that takes a data frame, a vector of binsizes and a correlation threshold as arguments.  The function should:
+  1) for numerical vectors: plot density and count histograms for each variable at each binsize.
+  2)for catagorical and bianary variables: plot the variable in a bar graph
+  3)calculate the r-square value of every pair of numerical variables
+  4)returns a list of key information
+
+
+
+```{r}
+require(ggplot2)
+require(dplyr)
+require(stats)
+require(fBasics)
+
+explore <- function(dataframe,binvec,cthresh){
+  
+  #Part 1____________________________________________________
+  
+  #the first thing we want our function to do is plot two histograms for every numerical variable, one will represent count size, and the othe density.  We will do this for value in the binvector, where the value is the bn size. We also want these plots to include a vertical red line that represents the mean of the variable.
+  
+  #this step ensures that all variables viewed are numeric and can be plotted.
+  numvar<- dataframe[which(lapply(dataframe,is.numeric) == TRUE)]
+  
+  len_num <- ncol(numvar)
+  
+  #start plotting in a for loop that includes each numerical vector
+  for(n in 1:len_num){
+    #dont forget we have to also cycle through the binwidth specified in the arguments so we must use a nestled for loop:
+    for(i in binvec){
+      #get the particular variable we want to plot
+      temp_var <- numvar[[n]]
+      
+      varname <- names(numvar)[n]
+      #need the mean of the variable to put the line at the mean:
+      varmean <- mean(temp_var)
+      
+      #plot the count
+      countplt <- ggplot(numvar, aes(x=temp_var),environment = environment())
+      countplt <- countplt +  geom_histogram(binwidth = i, colour='blue') + geom_vline(xintercept=varmean,colour='red') +labs(xlab=varname)
+      
+      #plot the density
+      densplt <- ggplot(numvar, aes(x=temp_var),environment = environment())
+      densplt <- countplt +  geom_histogram(aes(y= ..density..),binwidth = i, colour='blue') + geom_vline(xintercept=varmean,colour='red')+labs(xlab=varname)
+      
+      print(countplt)
+      print(densplt)
+      
+      
+    }
+  }
+  
+  #Part 2_____________________________________________________
+  
+  #all catagorical variables will be entered as an ordered factor so we extract those variables
+  cat_var <- dataframe[which(lapply(dataframe,is.factor) == TRUE)]
+  len_cat <- ncol(cat_var)
+  #Similarly any bianary variable will be TRUE or FALSE so we test if the variable is logical
+  logi_var <- dataframe[which(lapply(dataframe,is.logical) == TRUE)]
+  len_logi <- ncol(logi_var)
+  
+  
+  #now all we have to do is plot these variables as bar graphs
+  for(n in 1:len_cat){
+    tmpvar <- cat_var[[n]]
+    catplt <- ggplot(cat_var, aes(x = tmpvar),environment = environment())
+    catplt <- catplt + geom_bar(colour= 'grey')
+    
+    print(catplt)
+  }
+  
+  for(n in 1:len_logi){
+    tmpvar <- logi_var[[n]]
+    logiplt <- ggplot(logi_var, aes(x = tmpvar),environment = environment())
+    logiplt <- logiplt + geom_bar(colour= 'grey')
+    
+    print(logiplt)
+  }
+  
+  
+  #Prat 3________________________________________________________
+  
+  #calculating th r-square value for the every pair of numerical variables will be greatly fascilitated and more easily accessed if we can simply put them all in a vector
+  
+  #first we need to create an empty vector to put them all in and their names:
+  r.square_vec <- c()
+  r.square_names <- c()
+  
+  #now we use nestled for loops to pair all the variables and calculate the r-square value
+  n <- 0
+  for(i in 1:(len_num-1)){
+    for(j in (i+1):len_num){
+      n <- n+1
+      tmp1 <- numvar[[i]]
+      tmp2 <- numvar[[j]]
+      
+      tmp1name <- names(numvar)[[i]]
+      tmp2name <- names(numvar)[[j]]
+      
+      tmpframe <- data.frame(tmp1,tmp2)
+      
+      tmpr <- summary.lm(lm(tmpframe))$r.square
+      rname <- paste(tmp1name,tmp2name,sep='-')
+      
+      r.square_vec[n] <- tmpr
+      r.square_names[n] <- rname
+    }
+  }
+  
+  #now we assign the names to the r-square values so we know which values come frome which pairing:
+  r2vals <- setNames(r.square_vec,r.square_names)
+  #now we have a vector of all our r-square values:
+  print(r2vals)
+  
+  #Part 4_______________________________________________________
+  
+  #this fart of the function will be broken up into subsections for better organization
+  
+  #SECTION a) a frequency table of each bianar and catagorical value:
+  #to do this we must create a new dat frame with these vectors:
+  
+  freqframe <- cbind(cat_var, logi_var)
+  
+  #now we get a frequency table:
+  freq_tbl <- table(freqframe)
+  
+  #SECTION b) 
+  #MAKE A LIST OF ALL BELOW:
+  
+  #i
+  #summary of stats table for numerical variables
+  
+  #in fBasics this can be done simply using the function basicStats():
+  numstats <- c()
+  
+  for(i in 1:ncol(numvar)){
+    tmp <- basicStats(numvar[i])
+    numstats[i] <- data.frame(tmp)
+  }
+  
+  #ii
+  #a data frame that contains each pair of variables and the r-square:
+  #we have already put these into a vector, now we just make a dataframe. we use the original vectors and not the one printed to give seperate columns:
+  rframe <- data.frame(r.square_names,r.square_vec)
+  
+  #iii
+  #create a data frame of the correlations (Pearson) for all pairs, with the value greater thanf the thresh hold argument
+  
+  corframe <- data.frame(c('Corrilations'))
+  
+  k <- 0
+  for(i in 1:(len_num-1)){
+    for(j in (i+1):(len_num)){
+      tmp1 <- numvar[[i]]
+      tmp2 <- numvar[[j]]
+      
+      tmp1name <- names(numvar)[[i]]
+      tmp2name <- names(numvar)[[j]]
+      
+      varname <- paste(tmp1name,tmp2name,sep='-')
+      
+      varcor <- cor(tmp1,tmp2)
+      
+      cordata <- c(varcor,varname)
+      
+      if(abs(varcor) > cthresh){
+        k <- k+1
+        
+        corframe[varname] <- varcor
+      }
+      
+    }
+  }
+  
+  #now put the alues from (a) and b(i), b(ii), and b(iii) into a list:
+  
+  Var_info <- list(freq_tbl,numstats,rframe,corframe)
+  
+  return(Var_info)
+  
+}
+
+
+```
+
+
+
+
+Part 5:
+
+Testing the function
+
+```{r}
+
+#First we need to re-create the dataframe on the exam with the logical column according to mtcars$vs:
+
+data(mtcars)
+r <- nrow(diamonds)
+
+logi_vs <- rep(mtcars$vs==1,length.out=r)
+
+diamonds$vs <- logi_vs
+
+#now we can test our function with:
+bin_sizes <- c(5,20,50)
+corr_threshold <- 0.25
+
+data_list <- explore(diamonds,bin_sizes,corr_threshold)
+
+print(data_list)
+
+```
+
