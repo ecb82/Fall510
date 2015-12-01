@@ -46,11 +46,11 @@ explore <- function(dataframe,binvec,cthresh){
       
       #plot the count
       countplt <- ggplot(numvar, aes(x=temp_var),environment = environment())
-      countplt <- countplt +  geom_histogram(binwidth = i, colour='blue') + geom_vline(xintercept=varmean,colour='red') +labs(xlab=varname)
+      countplt <- countplt +  geom_histogram(binwidth = i, fill='blue') + geom_vline(xintercept=varmean,colour='red') +labs(xlab=varname)
       
       #plot the density
       densplt <- ggplot(numvar, aes(x=temp_var),environment = environment())
-      densplt <- countplt +  geom_histogram(aes(y= ..density..),binwidth = i, colour='blue') + geom_vline(xintercept=varmean,colour='red')+labs(xlab=varname)
+      densplt <- countplt +  geom_histogram(aes(y= ..density..),binwidth = i, fill='blue') + geom_vline(xintercept=varmean,colour='red')+labs(xlab=varname)
       
       print(countplt)
       print(densplt)
