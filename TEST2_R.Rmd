@@ -1,0 +1,626 @@
+---
+title: "TEST2_R"
+output: html_document
+---
+
+Preliminary:
+
+
+Note that the Abalone data set was loaded onto my computer only by downloading the data file onto the desktop and then loading it into R, the url path would timeout when using the data reading method shown in class.  I have included the url reading code as comments for access of the grader to avoid error.
+
+```{r}
+
+#Commented data loading code:
+# uciaddress <- "http://archive.ics.uci.edu/ml/machine-learning-databases/"
+# dataset <- "abalone/abalone.data"
+# getdataset <- paste(uciaddress, dataset, sep="")
+# abalone <- read.csv(getdataset)
+
+#Data loading code used on my device:
+
+abalone <- read.table("C:/Users/Eric_Budge/Desktop/abalone/Dataset.data/Dataset.data")
+colnames(abalone) <- c("Gender","Length","Diameter", "Height", "Whole_wgt", "Shucked_wgt", "Viscera_wgt", "Shell_wgt", "Rings")
+str(abalone)
+
+require(ggplot2)
+require(grid)
+require(stats)
+require(gridExtra)
+require(cowplot)
+require(dplyr)
+
+
+
+```
+
+Part 1:
+
+
+Here we want to start by taking random samples form the dataset of varying sizes, the best way to do this is to use the function described in class:
+
+```{r}
+
+randomSample = function(dataframe,n,replacement) {     
+  return (dataframe[sample(nrow(dataframe), n, replace=replacement),]) }
+
+```
+
+This will take n random samples from each column of the dataset.  We can either sample with replacement or without depending of the 'replacement' argument, and are returned a dataframe of the samples taken.
+
+This makes taking samples of various percents very easy, but first we have to convert percent into an integer sample size:
+
+```{r}
+
+#size of data:
+abasize <- nrow(abalone)
+
+PercSample = function(perc,dataframe){
+  datasize <- nrow(dataframe)
+  return(ceiling(datasize*perc))
+}
+
+```
+
+This function will give us the integer sample size of at least the percent desired.  Note that we use 'ceiling' rather than 'floor' so that regardless of percent size we will always have a non-zero sample size.  Also it is importnat to note that the 'perc' argument must be a floating point value, otherwise the calculation will be inaccurate.
+
+Now we are ready to take our samples and calculate our data:
+
+```{r}
+
+#Sample sizes for the desired percentages:
+size1 <- PercSample(0.01,abalone)
+size10 <- PercSample(0.1,abalone)
+size25 <- PercSample(0.25,abalone)
+size50 <- PercSample(0.5,abalone)
+size80 <- PercSample(0.8,abalone)
+size100 <- PercSample(1.0,abalone)
+
+#sample datframes:
+
+Sample1 <- randomSample(abalone,size1,TRUE)
+Sample10 <- randomSample(abalone,size10,TRUE)
+Sample25 <- randomSample(abalone,size25,TRUE)
+Sample50 <- randomSample(abalone,size50,TRUE)
+Sample80 <- randomSample(abalone,size80,TRUE)
+Sample100 <- randomSample(abalone,size100,FALSE)
+
+#Now we need to calculate the the min, max, mean and variance of each:
+
+Sample1data<- c(min(Sample1$Whole_wgt),max(Sample1$Whole_wgt),mean(Sample1$Whole_wgt),var(Sample1$Whole_wgt))
+Sample10data<- c(min(Sample10$Whole_wgt),max(Sample10$Whole_wgt),mean(Sample10$Whole_wgt),var(Sample10$Whole_wgt))
+Sample25data<- c(min(Sample25$Whole_wgt),max(Sample25$Whole_wgt),mean(Sample25$Whole_wgt),var(Sample25$Whole_wgt))
+Sample50data<- c(min(Sample50$Whole_wgt),max(Sample50$Whole_wgt),mean(Sample50$Whole_wgt),var(Sample50$Whole_wgt))
+Sample80data<- c(min(Sample80$Whole_wgt),max(Sample80$Whole_wgt),mean(Sample80$Whole_wgt),var(Sample80$Whole_wgt))
+Sample100data<- c(min(Sample100$Whole_wgt),max(Sample100$Whole_wgt),mean(Sample100$Whole_wgt),var(Sample100$Whole_wgt))
+
+#putting these into a dat frame:
+
+Wholeframe <- data.frame(Sample1data,Sample10data,Sample25data,Sample50data,Sample80data,Sample100data,row.names = c('SmapleMin','SmapleMax','SampleMean','SampleVar'))
+
+print(Wholeframe)
+
+
+```
+
+First we calculated the smaple size required to give the desired percentages, next we drew the smaples of that size stored them as data frames with the same variables as the original Abalone data.  Next we calculated the minimum, maximum, mean and variance values for the Whole_wgt variabe of each of the smaple data, and stored the values as a vector.  Combining all of these vectors, we now have a data frame of the information where the columns are the sample sizes and the rows are the data for each sample.
+
+
+Part 2:
+
+We want to create histograms for each sample size of each of the variables in the data set with a function.
+
+```{r}
+
+DataHist = function(dframelist,varcol){
+  i<- 0
+  allplots<- list()
+  for(varname in varcol){
+    for(n in dframelist){
+      i<- i+1
+      tmpvar <- n[[varname]]
+      rename <- paste(varname, 'plot', sep='')
+      tmpname <- ggplot(data=n, aes(x=tmpvar), environment=environment())
+      tmpname <- tmpname + geom_histogram(fill='blue') +labs(title=rename, x=varname)
+      allplots[[i]]<- tmpname
+      
+      print(allplots[[i]])
+    }
+  }
+}
+
+```
+
+
+
+```{r}
+SampleList<- list(Sample1,Sample10,Sample25,Sample50,Sample80,Sample100)
+testplot<- DataHist(SampleList,c('Whole_wgt'))
+
+```
+
+The function above can be usesd to plot any variable of a list of data sets, provided every set contain the variable.  This is usefull for seeing how our samples change in accuracy with size.
+
+
+Part 3:
+
+
+Now we want to sample 1000 times and calculate the mean of Whole_wgt for each sample size of each itteration, and compile the information in a data frame:
+
+```{r}
+
+abalone %>% 
+  select(Whole_wgt) -> Wholewgtraw
+
+percsize <- c(0.01,0.1,0.25,0.5,0.8)
+
+samplesize<- c()
+
+for(x in percsize){
+  temp<- PercSample(x,Wholewgtraw)
+  samplesize<- append(samplesize,temp)
+}
+
+Mean1<- c()
+Mean10<-c()
+Mean25<-c()
+Mean50<-c()
+Mean80<-c()
+
+MeanFrame <- data.frame(Mean1,Mean10,Mean25,Mean50,Mean80)
+
+for(i in 1:1000){
+  rowi<- c()
+  for(j in samplesize){
+    tmp <- randomSample(Wholewgtraw,j,TRUE)
+    Samean <- mean(tmp)
+    rowi<- append(rowi,Samean)
+  }
+  MeanFrame<- rbind(MeanFrame,rowi)
+}
+
+colnames(MeanFrame) <- c('Mean1','Mean10','Mean25','Mean50','Mean80')
+
+
+```
+
+
+
+Part 4:
+
+Here we want our function from part 2 to be used on our new data frame:
+
+
+```{r}
+
+namelist<- colnames(MeanFrame)
+
+DataHist(list(MeanFrame),namelist)
+
+
+```
+
+
+
+Part 5:
+
+Now we want to calculte the mean, max, min, and variance of our sample means, and append them to the Wholeframe data frame
+
+```{r}
+
+Mean1data<- c(min(MeanFrame$Mean1),max(MeanFrame$Mean1),mean(MeanFrame$Mean1),var(MeanFrame$Mean1))
+Mean10data<- c(min(MeanFrame$Mean10),max(MeanFrame$Mean10),mean(MeanFrame$Mean10),var(MeanFrame$Mean10))
+Mean25data<- c(min(MeanFrame$Mean25),max(MeanFrame$Mean25),mean(MeanFrame$Mean25),var(MeanFrame$Mean25))
+Mean50data<- c(min(MeanFrame$Mean50),max(MeanFrame$Mean50),mean(MeanFrame$Mean50),var(MeanFrame$Mean50))
+Mean80data<- c(min(MeanFrame$Mean80),max(MeanFrame$Mean80),mean(MeanFrame$Mean80),var(MeanFrame$Mean80))
+
+MeanData <- data.frame(Mean1data,Mean10data,Mean25data,Mean50data,Mean80data,row.names = c('SmapleMin','SmapleMax','SampleMean','SampleVar'))
+
+FrameAll<- cbind(Wholeframe,MeanData)
+row.names(FrameAll)<- c('ResampleMin', 'ResmpleMax', 'ResampleMean','ResampleVar')
+print(FrameAll)
+
+```
+
+
+
+
+Part 6:
+
+
+
+Here we want to plot the raw data (the 100% sample) with vertical lines to mark the sample means of the other random samplings.  This is done through a simple ggplot:
+
+
+```{r}
+
+Hist100 <- ggplot(Sample100, aes(x=Whole_wgt))
+Hist100 <- Hist100 + geom_histogram(binwidth=0.05,fill='black') + geom_vline(xintercept=c(0.9178333,0.8455203,0.8457526,0.8334452,0.8227337,0.8287422), colour=c('white','green','blue','cyan','black','red'), linetype=1, show_guide = TRUE)
+
+print(Hist100)
+
+```
+
+
+
+Part 7:
+
+Again we want a histogram of the 100% data sample, but this time with the Resample means as the vertical lines:
+
+
+```{r}
+
+ReHist100 <- ggplot(Sample100, aes(x=Whole_wgt))
+ReHist100 <- ReHist100 + geom_histogram(binwidth=0.05,fill='black') + geom_vline(xintercept=c(0.830160452,0.8290615873,0.829137947,0.8284868710,0.8286124,0.8287422), colour=c('white','green','blue','cyan','black','red'), linetype=1, show_guide = TRUE)
+
+print(ReHist100)
+
+```
+
+
+Notice that here al the vertical lines are so close that we can only see the red one.
+
+
+Part 8:
+--------------------------------------------------------------------------------------
+
+Here we are going to execute the same code as above, only we are going to look at diamonds$carat and faithful$eruptions.
+
+
+
+Diamonds:
+
+ 8.D1:
+
+
+
+```{r}
+
+#size of data:
+diamondsize <- nrow(diamonds)
+
+
+```
+
+
+
+```{r}
+
+#Sample sizes for the desired percentages:
+dsize1 <- PercSample(0.01,diamonds)
+dsize10 <- PercSample(0.1,diamonds)
+dsize25 <- PercSample(0.25,diamonds)
+dsize50 <- PercSample(0.5,diamonds)
+dsize80 <- PercSample(0.8,diamonds)
+dsize100 <- PercSample(1.0,diamonds)
+
+#sample datframes:
+
+dSample1 <- randomSample(diamonds,dsize1,TRUE)
+dSample10 <- randomSample(diamonds,dsize10,TRUE)
+dSample25 <- randomSample(diamonds,dsize25,TRUE)
+dSample50 <- randomSample(diamonds,dsize50,TRUE)
+dSample80 <- randomSample(diamonds,dsize80,TRUE)
+dSample100 <- randomSample(diamonds,dsize100,FALSE)
+
+#Now we need to calculate the the min, max, mean and variance of each:
+
+dSample1data<- c(min(dSample1$carat),max(dSample1$carat),mean(dSample1$carat),var(dSample1$carat))
+dSample10data<- c(min(dSample10$carat),max(dSample10$carat),mean(dSample10$carat),var(dSample10$carat))
+dSample25data<- c(min(dSample25$carat),max(dSample25$carat),mean(dSample25$carat),var(dSample25$carat))
+dSample50data<- c(min(dSample50$carat),max(dSample50$carat),mean(dSample50$carat),var(dSample50$carat))
+dSample80data<- c(min(dSample80$carat),max(dSample80$carat),mean(dSample80$carat),var(dSample80$carat))
+dSample100data<- c(min(dSample100$carat),max(dSample100$carat),mean(dSample100$carat),var(dSample100$carat))
+
+#putting these into a dat frame:
+
+dWholeframe <- data.frame(dSample1data,dSample10data,dSample25data,dSample50data,dSample80data,dSample100data,row.names = c('dSmapleMin','dSmapleMax','dSampleMean','dSampleVar'))
+
+print(dWholeframe)
+
+
+```
+
+
+
+8.D2:
+
+
+```{r}
+dSampleList<- list(dSample1,dSample10,dSample25,dSample50,dSample80,dSample100)
+dtestplot<- DataHist(dSampleList,c('carat'))
+
+```
+
+
+8.D3:
+
+
+```{r}
+
+diamonds %>% 
+  select(carat) -> dcaratraw
+
+percsize <- c(0.01,0.1,0.25,0.5,0.8)
+
+dsamplesize<- c()
+
+for(x in percsize){
+  temp<- PercSample(x,dcaratraw)
+  dsamplesize<- append(dsamplesize,temp)
+}
+
+dMean1<- c()
+dMean10<-c()
+dMean25<-c()
+dMean50<-c()
+dMean80<-c()
+
+dMeanFrame <- data.frame(dMean1,dMean10,dMean25,dMean50,dMean80)
+
+for(i in 1:1000){
+  rowi<- c()
+  for(j in dsamplesize){
+    tmp <- randomSample(dcaratraw,j,TRUE)
+    Samean <- mean(tmp)
+    rowi<- append(rowi,Samean)
+  }
+  dMeanFrame<- rbind(dMeanFrame,rowi)
+}
+
+colnames(dMeanFrame) <- c('dMean1','dMean10','dMean25','dMean50','dMean80')
+
+
+```
+
+
+
+8.D4:
+
+
+
+```{r}
+
+dnamelist<- colnames(dMeanFrame)
+
+DataHist(list(dMeanFrame),dnamelist)
+
+
+```
+
+
+
+8.D5:
+
+
+```{r}
+
+dMean1data<- c(min(dMeanFrame$dMean1),max(dMeanFrame$dMean1),mean(dMeanFrame$dMean1),var(dMeanFrame$dMean1))
+dMean10data<- c(min(dMeanFrame$dMean10),max(dMeanFrame$dMean10),mean(dMeanFrame$dMean10),var(dMeanFrame$dMean10))
+dMean25data<- c(min(dMeanFrame$dMean25),max(dMeanFrame$dMean25),mean(dMeanFrame$dMean25),var(dMeanFrame$dMean25))
+dMean50data<- c(min(dMeanFrame$dMean50),max(dMeanFrame$dMean50),mean(dMeanFrame$dMean50),var(dMeanFrame$dMean50))
+dMean80data<- c(min(dMeanFrame$dMean80),max(dMeanFrame$dMean80),mean(dMeanFrame$dMean80),var(dMeanFrame$dMean80))
+
+dMeanData <- data.frame(dMean1data,dMean10data,dMean25data,dMean50data,dMean80data,row.names = c('dSmapleMin','dSmapleMax','dSampleMean','dSampleVar'))
+
+dFrameAll<- cbind(dWholeframe,dMeanData)
+row.names(dFrameAll)<- c('dResampleMin', 'dResmpleMax', 'dResampleMean','dResampleVar')
+print(dFrameAll)
+
+```
+
+
+
+
+8.D6:
+
+
+
+```{r}
+
+dHist100 <- ggplot(dSample100, aes(x=carat))
+dHist100 <- dHist100 + geom_histogram(binwidth=0.05,fill='black') + geom_vline(xintercept=c(0.8542857,0.8135407,0.7738660,0.7886979,0.7903441,0.8076802), colour=c('white','green','blue','cyan','black','red'), linetype=1, show_guide = TRUE)
+
+print(dHist100)
+
+```
+
+
+
+8.D7:
+
+
+```{r}
+
+dReHist100 <- ggplot(dSample100, aes(x=carat))
+dReHist100 <- dReHist100 + geom_histogram(binwidth=0.05,fill='black') + geom_vline(xintercept=c(0.799001667,0.796393014,0.7981170239,0.7975566587,0.7978024,0.8076802), colour=c('white','green','blue','cyan','black','red'), linetype=1, show_guide = TRUE)
+
+print(dReHist100)
+
+```
+
+
+Notice that here al the vertical lines are so close that we can only see the red one.
+
+
+
+Faithful ------------------------------------------------------------------------
+
+
+
+ 8.F1:
+
+
+```{r}
+
+#size of data:
+faithfulsize <- nrow(faithful)
+
+
+```
+
+
+
+```{r}
+
+#Sample sizes for the desired percentages:
+fsize1 <- PercSample(0.01,faithful)
+fsize10 <- PercSample(0.1,faithful)
+fsize25 <- PercSample(0.25,faithful)
+fsize50 <- PercSample(0.5,faithful)
+fsize80 <- PercSample(0.8,faithful)
+fsize100 <- PercSample(1.0,faithful)
+
+#sample datframes:
+
+fSample1 <- randomSample(faithful,fsize1,TRUE)
+fSample10 <- randomSample(faithful,fsize10,TRUE)
+fSample25 <- randomSample(faithful,fsize25,TRUE)
+fSample50 <- randomSample(faithful,fsize50,TRUE)
+fSample80 <- randomSample(faithful,fsize80,TRUE)
+fSample100 <- randomSample(faithful,fsize100,FALSE)
+
+#Now we need to calculate the the min, max, mean and variance of each:
+
+fSample1data<- c(min(fSample1$eruptions),max(fSample1$eruptions),mean(fSample1$eruptions),var(fSample1$eruptions))
+fSample10data<- c(min(fSample10$eruptions),max(fSample10$eruptions),mean(fSample10$eruptions),var(fSample10$eruptions))
+fSample25data<- c(min(fSample25$eruptions),max(fSample25$eruptions),mean(fSample25$eruptions),var(fSample25$eruptions))
+fSample50data<- c(min(fSample50$eruptions),max(fSample50$eruptions),mean(fSample50$eruptions),var(fSample50$eruptions))
+fSample80data<- c(min(fSample80$eruptions),max(fSample80$eruptions),mean(fSample80$eruptions),var(fSample80$eruptions))
+fSample100data<- c(min(fSample100$eruptions),max(fSample100$eruptions),mean(fSample100$eruptions),var(fSample100$eruptions))
+
+#putting these into a dat frame:
+
+fWholeframe <- data.frame(fSample1data,fSample10data,fSample25data,fSample50data,fSample80data,fSample100data,row.names = c('fSmapleMin','fSmapleMax','fSampleMean','fSampleVar'))
+
+print(fWholeframe)
+
+
+```
+
+
+
+8.2:
+
+
+```{r}
+fSampleList<- list(fSample1,fSample10,fSample25,fSample50,fSample80,fSample100)
+ftestplot<- DataHist(fSampleList,c('eruptions'))
+
+```
+
+
+8.3:
+
+
+```{r}
+
+faithful %>% 
+  select(eruptions) -> feruptionsraw
+
+percsize <- c(0.01,0.1,0.25,0.5,0.8)
+
+fsamplesize<- c()
+
+for(x in percsize){
+  temp<- PercSample(x,feruptionsraw)
+  fsamplesize<- append(fsamplesize,temp)
+}
+
+fMean1<- c()
+fMean10<-c()
+fMean25<-c()
+fMean50<-c()
+fMean80<-c()
+
+fMeanFrame <- data.frame(fMean1,fMean10,fMean25,fMean50,fMean80)
+
+for(i in 1:1000){
+  rowi<- c()
+  for(j in fsamplesize){
+    tmp <- randomSample(feruptionsraw,j,TRUE)
+    Samean <- mean(tmp)
+    rowi<- append(rowi,Samean)
+  }
+  fMeanFrame<- rbind(fMeanFrame,rowi)
+}
+
+colnames(fMeanFrame) <- c('fMean1','fMean10','fMean25','fMean50','fMean80')
+
+
+```
+
+
+
+8.4:
+
+
+
+```{r}
+
+fnamelist<- colnames(fMeanFrame)
+
+DataHist(list(fMeanFrame),fnamelist)
+
+
+```
+
+
+
+8.5:
+
+
+```{r}
+
+fMean1data<- c(min(fMeanFrame$fMean1),max(fMeanFrame$fMean1),mean(fMeanFrame$fMean1),var(fMeanFrame$fMean1))
+fMean10data<- c(min(fMeanFrame$fMean10),max(fMeanFrame$fMean10),mean(fMeanFrame$fMean10),var(fMeanFrame$fMean10))
+fMean25data<- c(min(fMeanFrame$fMean25),max(fMeanFrame$fMean25),mean(fMeanFrame$fMean25),var(fMeanFrame$fMean25))
+fMean50data<- c(min(fMeanFrame$fMean50),max(fMeanFrame$fMean50),mean(fMeanFrame$fMean50),var(fMeanFrame$fMean50))
+fMean80data<- c(min(fMeanFrame$fMean80),max(fMeanFrame$fMean80),mean(fMeanFrame$fMean80),var(fMeanFrame$fMean80))
+
+fMeanData <- data.frame(fMean1data,fMean10data,fMean25data,fMean50data,fMean80data,row.names = c('fSmapleMin','fSmapleMax','fSampleMean','fSampleVar'))
+
+fFrameAll<- cbind(fWholeframe,fMeanData)
+row.names(fFrameAll)<- c('fResampleMin', 'fResmpleMax', 'fResampleMean','fResampleVar')
+print(fFrameAll)
+
+```
+
+
+
+
+8.6:
+
+
+
+```{r}
+
+fHist100 <- ggplot(fSample100, aes(x=eruptions))
+fHist100 <- fHist100 + geom_histogram(binwidth=0.05,fill='black') + geom_vline(xintercept=c(3.661000,3.214214,3.515662,3.475926,3.587761,3.487783), colour=c('red','green','blue','cyan','black','red'), linetype=1, show_guide = TRUE)
+
+print(fHist100)
+
+```
+
+
+
+8.7:
+
+
+```{r}
+
+fReHist100 <- ggplot(fSample100, aes(x=eruptions))
+fReHist100 <- fReHist100 + geom_histogram(binwidth=0.05,fill='black') + geom_vline(xintercept=c(3.4917023,3.50406232,3.48061393,3.489499684,3.487264917,3.487783), colour=c('red','green','blue','cyan','black','red'), linetype=1, show_guide = TRUE)
+
+print(fReHist100)
+
+```
+
+
+
+
+Part 9:
+
+The historgrams, particularly thous that have the vertical lines marking the sample means, demonstrate that the larger the sample size that you can take the more better because the data will be more accurate.  This is because you get more of the real events when you sample more.  It also shows that repeated sampling is more accurate than random sampling.  Even takeing small samples many time produces results far clore to the true mean than single samples of larger size.  This also makes good sense because we would expect to get the more common values in many small samples, which means they will have a stronger influence on the final mean.  In all repeated sampling is the most effective and should be utilized whenever possible.  
+
+
+
